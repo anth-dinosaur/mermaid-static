@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MermaidJS Live Editor</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter">
+    <style>
+    </style>
+</head>
+
+<body class="bg-gray-100 h-full">
+    <div class="container mx-auto p-4 h-full">
+        <div class="flex flex-col md:flex-row md:space-x-4 h-full">
+            <div class="flex-1 mb-4">
+                <h2 class="text-lg font-semibold mb-2">MermaidJS Code</h2>
+                <span id="cmplaceholder" class="w-full h-64 p-2"></span>
+                <div class="flex justify-between mt-2">
+                    <button id="openBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        Open
+                    </button>
+                    <input type="file" id="fileInput" class="hidden" />
+                    <button id="saveBtn" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        Save
+                    </button>
+                    <button id="shareBtn"
+                        class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+                        Share
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 mb-4 flex flex-col h-full">
+                <h2 class="text-lg font-semibold mb-2">Preview</h2>
+                <div id="mermaidPreview" class="border rounded p-2 flex-1 h-full">No mermaid chart to render yet...</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { basicSetup, EditorView } from 'https://cdn.jsdelivr.net/npm/codemirror@6.0.1/+esm'
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10.6.1/+esm';
+        import svgPanZoom from 'https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/+esm'
+
+        const onChangeEvent = EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+                renderMermaid();
+            }
+        })
+        const cmEditorView = new EditorView({
+            doc: "Type Mermaid code here...",
+            extensions: [basicSetup, onChangeEvent],
+            parent: document.getElementById('cmplaceholder')
+        });
+        const cmElement = cmEditorView.dom;
+        cmElement.style.height = '50%'; // Set the initial height
+        cmElement.style.resize = 'vertical'; // Make it resizable vertically
+        cmElement.style.overflow = 'auto'; // Add scrollbars when content overflows
+        cmElement.style.border = '1px rgb(229,231,235) solid';
+        cmElement.style.borderRadius = '4px';
+
+
+        const mermaidCode = document.getElementById('mermaidCode');
+        const mermaidPreview = document.getElementById('mermaidPreview');
+        const openBtn = document.getElementById('openBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const fileInput = document.getElementById('fileInput');
+
+        function getMermaidCode() {
+            return cmEditorView.state.doc.toString();
+        }
+        function setMermaidCode(code) {
+            cmEditorView.dispatch({
+                changes: { from: 0, to: cmEditorView.state.doc.length, insert: code }
+            });
+        }
+        async function renderMermaid() {
+            const code = getMermaidCode();
+            if (code.trim() === '') {
+                mermaidPreview.innerHTML = 'No Mermaid code to render.';
+                return;
+            }
+
+            const { svg } = await mermaid.render('generatedId', code);
+            mermaidPreview.innerHTML = svg;
+            mermaidPreview.querySelector('svg').setAttribute('height', '100%');
+            var panZoom = svgPanZoom('#mermaidPreview svg', { controlIconsEnabled: true });
+        }
+
+        openBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    setMermaidCode(e.target.result);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        saveBtn.addEventListener('click', () => {
+            const blob = new Blob([getMermaidCode()], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.save = 'mermaid-diagram.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        shareBtn.addEventListener('click', () => {
+            event.stopPropagation();
+            const encodedCode = encodeURIComponent(getMermaidCode());
+            const baseUrl = window.location.origin + window.location.pathname;
+            const newUrl = `${baseUrl}?code=${encodedCode}`;
+            const shareContainer = document.createElement('div');
+            shareContainer.className = 'p-4 mx-auto bg-white rounded-lg shadow-md flex flex-col items-center';
+            shareContainer.style.width = '75%';
+            shareContainer.style.maxWidth = 'none'; // Remove the max-w-xs constraint
+            const titleBar = document.createElement('div');
+            titleBar.className = 'w-full flex justify-between items-center';
+            const title = document.createElement('span');
+            title.className = 'text-gray-800 font-semibold';
+            title.innerText = 'Sharable link...';
+            titleBar.appendChild(title);
+            const linkContainer = document.createElement('div');
+            linkContainer.className = 'flex w-full';
+            const shareInput = document.createElement('input');
+            shareInput.type = 'text';
+            shareInput.className = 'border border-gray-300 p-2 rounded flex-grow';
+            shareInput.value = newUrl;
+            shareInput.readOnly = true;
+            const copyButton = document.createElement('button');
+            copyButton.className = 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2';
+            copyButton.innerText = 'Copy';
+            copyButton.addEventListener('click', () => {
+                navigator.clipboard.writeText(newUrl).then(() => {
+                    copyButton.innerText = 'Copied!';
+                    setTimeout(() => {
+                        copyButton.innerText = 'Copy';
+                    }, 2000);
+                });
+            });
+            linkContainer.appendChild(shareInput);
+            linkContainer.appendChild(copyButton);
+            shareContainer.appendChild(titleBar);
+            shareContainer.appendChild(linkContainer);
+            document.body.appendChild(shareContainer);
+            const removeShareContainer = (event) => {
+                if (!shareContainer.contains(event.target)) {
+                    document.body.removeChild(shareContainer);
+                    document.removeEventListener('click', removeShareContainer);
+                }
+            };
+            document.addEventListener('click', removeShareContainer);
+        });
+
+        // Parse URL on load
+        window.addEventListener('DOMContentLoaded', () => {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'neutral',
+                themeVariables: {
+                    fontFamily: 'Inter, Segoe UI'
+                }
+            });
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            if (code) {
+                setMermaidCode(code);
+            }
+        });
+    </script>
+</body>
+
+</html>
