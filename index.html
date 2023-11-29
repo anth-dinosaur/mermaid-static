@@ -15,7 +15,7 @@
         <div class="flex flex-col md:flex-row md:space-x-4">
             <div class="flex-1 mb-4">
                 <h2 class="text-lg font-semibold mb-2">MermaidJS Code</h2>
-                <span id="cmplaceholder" class="w-full h-64 p-2"></span>
+                <div id="edit_placeholder" class="w-full h-64 p-2"></span>
                 <div class="flex justify-between mt-2">
                     <button id="openBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                         Open
@@ -36,15 +36,40 @@
             </div>
         </div>
     </div>
+    <script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
     <script type="module">
         /*import { basicSetup, EditorView } from 'https://cdn.jsdelivr.net/npm/codemirror@6.0.1/+esm'
         import {keymap} from 'https://cdn.jsdelivr.net/npm/@codemirror/view@6.0.1/+esm'
         import {indentWithTab} from 'https://cdn.jsdelivr.net/npm/@codemirror/commands@6.0.1/+esm'*/
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10.6.1/+esm';
         import svgPanZoom from 'https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/+esm'
-        import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/+esm';
-        import editorWorker from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/esm/vs/editor/editor.worker.js';
 
+        require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@latest/min/vs' }});
+        window.MonacoEnvironment = { getWorkerUrl: () => proxy };
+
+        let proxy = URL.createObjectURL(new Blob([`
+            self.MonacoEnvironment = {
+                baseUrl: 'https://unpkg.com/monaco-editor@latest/min/'
+            };
+            importScripts('https://unpkg.com/monaco-editor@latest/min/vs/base/worker/workerMain.js');
+        `], { type: 'text/javascript' }));
+
+        require(["vs/editor/editor.main"], function () {
+            window.monacoEditor = monaco.editor.create(document.getElementById('edit_placeholder'), {
+                value: 'Type Mermaid code here...',
+                theme: 'vs-dark',
+                fontFamily: "Fira Code",
+                fontLigatures: true,
+                roundedSelection: true
+            });
+            window.monacoEditor.onDidChangeModelContent((event) => {
+                renderMermaid();
+            });
+        });
+        
+        // import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/+esm';
+        // import * as editorWorker from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/esm/vs/editor/editor.worker.js';
+        // console.log(editorWorker)
         // self.MonacoEnvironment = {
         //     getWorker: function (workerId, label) {
         //         const getWorkerModule = (moduleUrl, label) => {
@@ -55,17 +80,17 @@
         //         };
         //     }
         // };
-        self.MonacoEnvironment = {
-            getWorker(_, label) {
-                return new editorWorker();
-            }
-        };
+        // self.MonacoEnvironment = {
+        //     getWorker(_, label) {
+        //         return editorWorker.initialize();
+        //     }
+        // };
 
-        var monacoEditor = monaco.editor.create(document.getElementById("cmplaceholder"), {
-            value: 'Type Mermaid code here...',
-            language: "plaintext",
-            automaticLayout: true,
-        });
+        // var monacoEditor = monaco.editor.create(document.getElementById("cmplaceholder"), {
+        //     value: 'Type Mermaid code here...',
+        //     language: "plaintext",
+        //     automaticLayout: true,
+        // });
 
         /*        const theme = EditorView.theme({
                     '&': {
@@ -80,7 +105,7 @@
                 const cmEditorView = new EditorView({
                     doc: "Type Mermaid code here...",
                     extensions: [basicSetup, onChangeEvent, keymap.of(indentWithTab), theme],
-                    parent: document.getElementById('cmplaceholder')
+                    parent: document.getElementById('edit_placeholder')
                 });
                 const cmElement = cmEditorView.dom;
                 cmElement.style.height = '50%'; // Set the initial height
@@ -100,13 +125,13 @@
 
         function getMermaidCode() {
             //return cmEditorView.state.doc.toString();
-            return monacoEditor.getValue();
+            return window.monacoEditor.getValue();
         }
         function setMermaidCode(code) {
             /*cmEditorView.dispatch({
                 changes: { from: 0, to: cmEditorView.state.doc.length, insert: code }
             });*/
-            monacoEditor.getModel().setValue(code);
+            window.monacoEditor.setValue(code);
 
         }
         async function renderMermaid() {
