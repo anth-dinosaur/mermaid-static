@@ -29,7 +29,13 @@
             </div>
         </div>
         <div class="flex-1 mb-4">
-            <h2 class="text-lg font-semibold mb-2">Mermaid Chart</h2>
+            <h2 class="text-lg font-semibold mb-2 flex justify-between items-center">
+                Mermaid Chart
+                <script src="https://kit.fontawesome.com/8f63940ed2.js" crossorigin="anonymous"></script>
+                <a href="#" id="downloadSvg" class="download-icon" title="Download SVG">
+                    <i class="fa-solid fa-download fa-sm"></i>
+                </a>
+            </h2>
             <div id="mermaidPreview" class="border rounded p-2">No mermaid chart to render yet...</div>
         </div>
     </div>
@@ -84,7 +90,24 @@
         const saveBtn = document.getElementById('saveBtn');
         const shareBtn = document.getElementById('shareBtn');
         const fileInput = document.getElementById('fileInput');
+        var mermaidSVG = '';
+        document.getElementById('downloadSvg').addEventListener('click', () => {
+            if (mermaidSVG != '') {
+                const parser = new DOMParser();
+                const svgDocument = parser.parseFromString(mermaidSVG, "image/svg+xml");
+                const svgNode = svgDocument.documentElement;
 
+                const svgData = new XMLSerializer().serializeToString(svgNode);
+                const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+                const svgUrl = URL.createObjectURL(svgBlob);
+                const downloadLink = document.createElement("a");
+                downloadLink.href = svgUrl;
+                downloadLink.download = "mermaid-diagram.svg";
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            }
+        });
         function getMermaidCode() {
             return window.monacoEditor.getValue();
         }
@@ -103,7 +126,8 @@
 
             try {
                 const { svg } = await mermaid.render('generatedId', code);
-                mermaidPreview.innerHTML = svg;
+                mermaidSVG = svg;
+                mermaidPreview.innerHTML = mermaidSVG;
                 var svgElement = mermaidPreview.querySelector('svg');
                 var originalHeight = svgElement.getBoundingClientRect().height;
                 console.log(originalHeight);
@@ -117,7 +141,7 @@
                 const svgWidth = svgElement.getBoundingClientRect().width;
                 controls.setAttribute('transform', 'translate(' + (svgWidth - 100) + ', ' + (svgHeight * 0.15) + ')');
             } catch (error) {
-                lastSVG = lastSVG.replaceAll(errorPrefix,'');
+                lastSVG = lastSVG.replaceAll(errorPrefix, '');
                 mermaidPreview.innerHTML = errorPrefix + lastSVG;
                 const errorDiv = document.getElementById('dgeneratedId');
                 if (errorDiv) {
@@ -148,7 +172,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.save = 'mermaid-diagram.txt';
+            a.download = 'mermaid-diagram.txt';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
