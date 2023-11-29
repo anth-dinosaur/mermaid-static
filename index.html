@@ -29,7 +29,7 @@
             </div>
         </div>
         <div class="flex-1 mb-4">
-            <h2 class="text-lg font-semibold mb-2">Preview</h2>
+            <h2 class="text-lg font-semibold mb-2">Mermaid Chart</h2>
             <div id="mermaidPreview" class="border rounded p-2">No mermaid chart to render yet...</div>
         </div>
     </div>
@@ -98,22 +98,34 @@
                 mermaidPreview.innerHTML = 'No Mermaid code to render.';
                 return;
             }
+            let lastSVG = mermaidPreview.innerHTML
+            const errorPrefix = 'Error in Mermaid syntax, showing last valid diagram.<br>';
 
-            const { svg } = await mermaid.render('generatedId', code);
-            mermaidPreview.innerHTML = svg;
+            try {
+                const { svg } = await mermaid.render('generatedId', code);
+                mermaidPreview.innerHTML = svg;
+                var svgElement = mermaidPreview.querySelector('svg');
+                var originalHeight = svgElement.getBoundingClientRect().height;
+                console.log(originalHeight);
+                var panZoom = svgPanZoom('#mermaidPreview svg', { controlIconsEnabled: true, center: true });
+                mermaidPreview.querySelector('svg').style.maxWidth = '';
+                svgElement.style.height = originalHeight + 'px';
+                console.log(svgElement.getBoundingClientRect().height);
 
-            var svgElement = mermaidPreview.querySelector('svg');
-            var originalHeight = svgElement.getBoundingClientRect().height;
-            console.log(originalHeight);
-            var panZoom = svgPanZoom('#mermaidPreview svg', { controlIconsEnabled: true, center: true });
-            mermaidPreview.querySelector('svg').style.maxWidth = '';
-            svgElement.style.height = originalHeight + 'px';
-            console.log(svgElement.getBoundingClientRect().height);
+                const controls = document.querySelector('g[id="svg-pan-zoom-controls"]');
+                const svgHeight = svgElement.getBoundingClientRect().height;
+                const svgWidth = svgElement.getBoundingClientRect().width;
+                controls.setAttribute('transform', 'translate(' + (svgWidth - 100) + ', ' + (svgHeight * 0.15) + ')');
+            } catch (error) {
+                lastSVG = lastSVG.replaceAll(errorPrefix,'');
+                mermaidPreview.innerHTML = errorPrefix + lastSVG;
+                const errorDiv = document.getElementById('dgeneratedId');
+                if (errorDiv) {
+                    errorDiv.remove();
+                }
+            }
 
-            const controls = document.querySelector('g[id="svg-pan-zoom-controls"]');
-            const svgHeight = svgElement.getBoundingClientRect().height;
-            const svgWidth = svgElement.getBoundingClientRect().width;
-            controls.setAttribute('transform', 'translate(' + (svgWidth - 100) + ', ' + (svgHeight * 0.15) + ')');
+
         }
 
         openBtn.addEventListener('click', () => {
