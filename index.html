@@ -10,112 +10,74 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Code">
 </head>
 
-<body class="bg-gray-100 h-screen">
-    <div class="container mx-auto p-4">
-        <div class="flex flex-col md:flex-row md:space-x-4">
-            <div class="flex-1 mb-4">
-                <h2 class="text-lg font-semibold mb-2">MermaidJS Code</h2>
-                <div id="edit_placeholder" class="w-full h-64 p-2"></span>
-                <div class="flex justify-between mt-2">
-                    <button id="openBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                        Open
-                    </button>
-                    <input type="file" id="fileInput" class="hidden" />
-                    <button id="saveBtn" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                        Save
-                    </button>
-                    <button id="shareBtn"
-                        class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
-                        Share
-                    </button>
-                </div>
-            </div>
-            <div class="flex-1 mb-4 h-auto">
-                <h2 class="text-lg font-semibold mb-2">Preview</h2>
-                <div id="mermaidPreview" class="border rounded p-2 h-auto">No mermaid chart to render yet...</div>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4 flex flex-col md:flex-row">
+        <div class="flex-1 mb-4 flex flex-col">
+            <h2 class="text-lg font-semibold mb-2">MermaidJS Code</h2>
+            <div id="edit_placeholder" class="w-full h-64 p-2 mb-2 pt-0"></div>
+            <div class="flex justify-between mt-2 p-2">
+                <button id="openBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Open
+                </button>
+                <input type="file" id="fileInput" class="hidden" />
+                <button id="saveBtn" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    Save
+                </button>
+                <button id="shareBtn" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+                    Share
+                </button>
             </div>
         </div>
+        <div class="flex-1 mb-4">
+            <h2 class="text-lg font-semibold mb-2">Preview</h2>
+            <div id="mermaidPreview" class="border rounded p-2">No mermaid chart to render yet...</div>
+        </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
     <script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
     <script type="module">
-        /*import { basicSetup, EditorView } from 'https://cdn.jsdelivr.net/npm/codemirror@6.0.1/+esm'
-        import {keymap} from 'https://cdn.jsdelivr.net/npm/@codemirror/view@6.0.1/+esm'
-        import {indentWithTab} from 'https://cdn.jsdelivr.net/npm/@codemirror/commands@6.0.1/+esm'*/
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10.6.1/+esm';
         import svgPanZoom from 'https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/+esm'
 
-        require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@latest/min/vs' }});
+        require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@0.44.0/min/vs' } });
         window.MonacoEnvironment = { getWorkerUrl: () => proxy };
 
         let proxy = URL.createObjectURL(new Blob([`
             self.MonacoEnvironment = {
-                baseUrl: 'https://unpkg.com/monaco-editor@latest/min/'
+                baseUrl: 'https://unpkg.com/monaco-editor@0.44.0/min/'
             };
-            importScripts('https://unpkg.com/monaco-editor@latest/min/vs/base/worker/workerMain.js');
+            importScripts('https://unpkg.com/monaco-editor@0.44.0/min/vs/base/worker/workerMain.js');
         `], { type: 'text/javascript' }));
 
-        require(["vs/editor/editor.main"], function () {
-            window.monacoEditor = monaco.editor.create(document.getElementById('edit_placeholder'), {
-                value: 'Type Mermaid code here...',
-                theme: 'vs-dark',
-                fontFamily: "Fira Code",
-                fontLigatures: true,
-                roundedSelection: true
-            });
-            window.monacoEditor.onDidChangeModelContent((event) => {
-                renderMermaid();
-            });
-        });
-        
-        // import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/+esm';
-        // import * as editorWorker from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/esm/vs/editor/editor.worker.js';
-        // console.log(editorWorker)
-        // self.MonacoEnvironment = {
-        //     getWorker: function (workerId, label) {
-        //         const getWorkerModule = (moduleUrl, label) => {
-        //             return new Worker(self.MonacoEnvironment.getWorkerUrl(moduleUrl), {
-        //                 name: label,
-        //                 type: 'module'
-        //             });
-        //         };
-        //     }
-        // };
-        // self.MonacoEnvironment = {
-        //     getWorker(_, label) {
-        //         return editorWorker.initialize();
-        //     }
-        // };
-
-        // var monacoEditor = monaco.editor.create(document.getElementById("cmplaceholder"), {
-        //     value: 'Type Mermaid code here...',
-        //     language: "plaintext",
-        //     automaticLayout: true,
-        // });
-
-        /*        const theme = EditorView.theme({
-                    '&': {
-                        font: "'Fira Code', Consolas, monospace",
-                    }
-                })
-                const onChangeEvent = EditorView.updateListener.of((update) => {
-                    if (update.docChanged) {
+        function initializeMonacoEditor() {
+            return new Promise((resolve) => {
+                require(["vs/editor/editor.main"], function () {
+                    window.monacoEditor = monaco.editor.create(document.getElementById('edit_placeholder'), {
+                        value: 'Type Mermaid code here...',
+                        theme: 'vs-dark',
+                        fontFamily: "Fira Code",
+                        fontLigatures: true,
+                        roundedSelection: true
+                    });
+                    window.monacoEditor.onDidChangeModelContent((event) => {
                         renderMermaid();
-                    }
-                })
-                const cmEditorView = new EditorView({
-                    doc: "Type Mermaid code here...",
-                    extensions: [basicSetup, onChangeEvent, keymap.of(indentWithTab), theme],
-                    parent: document.getElementById('edit_placeholder')
+                    });
+                    resolve();
                 });
-                const cmElement = cmEditorView.dom;
-                cmElement.style.height = '50%'; // Set the initial height
-                cmElement.style.resize = 'vertical'; // Make it resizable vertically
-                cmElement.style.overflow = 'auto'; // Add scrollbars when content overflows
-                cmElement.style.border = '1px rgb(229,231,235) solid';
-                cmElement.style.borderRadius = '4px';*/
-
-
-
+            });
+        }
+        function initializeMermaid() {
+            return new Promise((resolve) => {
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: 'neutral',
+                    themeVariables: {
+                        fontFamily: 'Inter, Segoe UI'
+                    }
+                });
+                resolve();
+            });
+        }
         const mermaidCode = document.getElementById('mermaidCode');
         const mermaidPreview = document.getElementById('mermaidPreview');
         const openBtn = document.getElementById('openBtn');
@@ -124,13 +86,9 @@
         const fileInput = document.getElementById('fileInput');
 
         function getMermaidCode() {
-            //return cmEditorView.state.doc.toString();
             return window.monacoEditor.getValue();
         }
         function setMermaidCode(code) {
-            /*cmEditorView.dispatch({
-                changes: { from: 0, to: cmEditorView.state.doc.length, insert: code }
-            });*/
             window.monacoEditor.setValue(code);
 
         }
@@ -152,15 +110,10 @@
             svgElement.style.height = originalHeight + 'px';
             console.log(svgElement.getBoundingClientRect().height);
 
-            // reposition the controls
             const controls = document.querySelector('g[id="svg-pan-zoom-controls"]');
-            //get height and width of svg
             const svgHeight = svgElement.getBoundingClientRect().height;
             const svgWidth = svgElement.getBoundingClientRect().width;
-            //set the controls to be 15% from the top of the svg and 100px from the right
             controls.setAttribute('transform', 'translate(' + (svgWidth - 100) + ', ' + (svgHeight * 0.15) + ')');
-            //mermaidPreview.querySelector('svg').setAttribute('preserveAspectRatio', 'xMinYMin meet');
-            // mermaidPreview.querySelector('svg').setAttribute('height', '100%');
         }
 
         openBtn.addEventListener('click', () => {
@@ -189,15 +142,33 @@
             document.body.removeChild(a);
         });
 
-        shareBtn.addEventListener('click', () => {
+        shareBtn.addEventListener('click', (event) => {
             event.stopPropagation();
-            const encodedCode = encodeURIComponent(getMermaidCode());
+            if (document.querySelector('.share-container')) return;
+
+            const encodedCode = LZString.compressToEncodedURIComponent(getMermaidCode());
             const baseUrl = window.location.origin + window.location.pathname;
             const newUrl = `${baseUrl}?code=${encodedCode}`;
             const shareContainer = document.createElement('div');
-            shareContainer.className = 'p-4 mx-auto bg-white rounded-lg shadow-md flex flex-col items-center';
+            shareContainer.className = 'share-container p-4 bg-white rounded-lg shadow-md flex flex-col items-center';
+            shareContainer.style.position = 'fixed';
+            shareContainer.style.top = '50%';
+            shareContainer.style.left = '50%';
+            shareContainer.style.transform = 'translate(-50%, -50%)';
+            shareContainer.style.zIndex = '1000';
             shareContainer.style.width = '75%';
-            shareContainer.style.maxWidth = 'none'; // Remove the max-w-xs constraint
+            shareContainer.style.maxWidth = 'none';
+
+            const overlay = document.createElement('div');
+            overlay.className = 'overlay';
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            overlay.style.zIndex = '999';
+
             const titleBar = document.createElement('div');
             titleBar.className = 'w-full flex justify-between items-center';
             const title = document.createElement('span');
@@ -226,30 +197,27 @@
             linkContainer.appendChild(copyButton);
             shareContainer.appendChild(titleBar);
             shareContainer.appendChild(linkContainer);
+            document.body.appendChild(overlay);
             document.body.appendChild(shareContainer);
+
             const removeShareContainer = (event) => {
-                if (!shareContainer.contains(event.target)) {
+                if (!shareContainer.contains(event.target) && !event.target.matches('.share-btn')) {
                     document.body.removeChild(shareContainer);
+                    document.body.removeChild(overlay);
                     document.removeEventListener('click', removeShareContainer);
                 }
             };
             document.addEventListener('click', removeShareContainer);
         });
-
-        // Parse URL on load
-        window.addEventListener('DOMContentLoaded', () => {
-            mermaid.initialize({
-                startOnLoad: false,
-                theme: 'neutral',
-                themeVariables: {
-                    fontFamily: 'Inter, Segoe UI'
-                }
-            });
+        function onBothReady() {
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
             if (code) {
-                setMermaidCode(code);
+                setMermaidCode(LZString.decompressFromEncodedURIComponent(code));
             }
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            Promise.all([initializeMonacoEditor(), initializeMermaid()]).then(onBothReady);
         });
     </script>
 </body>
