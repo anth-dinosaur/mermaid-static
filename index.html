@@ -43,17 +43,24 @@
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10.6.1/+esm';
         import svgPanZoom from 'https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/+esm'
         import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/+esm';
+        import editorWorker from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/editor/editor.main.min.js';
 
+        // self.MonacoEnvironment = {
+        //     getWorker: function (workerId, label) {
+        //         const getWorkerModule = (moduleUrl, label) => {
+        //             return new Worker(self.MonacoEnvironment.getWorkerUrl(moduleUrl), {
+        //                 name: label,
+        //                 type: 'module'
+        //             });
+        //         };
+        //     }
+        // };
         self.MonacoEnvironment = {
-            getWorker: function (workerId, label) {
-                const getWorkerModule = (moduleUrl, label) => {
-                    return new Worker(self.MonacoEnvironment.getWorkerUrl(moduleUrl), {
-                        name: label,
-                        type: 'module'
-                    });
-                };
+            getWorker(_, label) {
+                return new editorWorker();
             }
         };
+
         var monacoEditor = monaco.editor.create(document.getElementById("cmplaceholder"), {
             value: 'Type Mermaid code here...',
             language: "plaintext",
